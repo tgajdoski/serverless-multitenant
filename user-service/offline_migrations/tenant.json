@@ -1,0 +1,17 @@
+{
+    "Table": {
+        "TableName": "Tenant",
+        "KeySchema": [{
+            "AttributeName": "TenantId",
+            "KeyType": "HASH"
+        }],
+        "AttributeDefinitions": [{
+            "AttributeName": "TenantId",
+            "AttributeType": "S"
+        }],
+        "ProvisionedThroughput": {
+            "ReadCapacityUnits": 1,
+            "WriteCapacityUnits": 1
+        }
+    }
+}

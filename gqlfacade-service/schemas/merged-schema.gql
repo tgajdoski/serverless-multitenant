@@ -1,0 +1,68 @@
+type GUser {
+  userId: ID!
+  username: String!
+}
+
+type GTenant {
+  name: String!
+}
+
+type Configuration {
+  userPoolId: String!
+  userPoolClientAppId: String!
+  identityPoolId: String!
+}
+
+type Query {
+  users: [GUser]!
+  config: Configuration
+  files(parentId: String): [GFile]!
+  file(fileId: ID!): GFile
+  projects: [GProject]!
+  project(projectId: ID!): GProject
+}
+
+type InitializationResult {
+  initialized: Boolean!
+  newTenant: Boolean!
+  tenantName: String!
+}
+
+type Mutation {
+  inviteUser(email: String!): String!
+  initializeMe: InitializationResult!
+  getUploadAuthorization(filename: String!, parentId: String): UploadAuthorization
+  createProject(projectname: String!): GProject
+}
+
+type GFile {
+  fileId: ID!
+  filename: String!
+  signedUrl: String
+  parentId: ID!
+  size: Int
+  lastModified: String
+  isContainer: Boolean
+  uploaded: Boolean
+  owner: ID
+}
+
+type IAMCredentials {
+  accessKey: String
+  secretAccessKey: String
+  sessionToken: String
+}
+
+type UploadAuthorization {
+  credentials: IAMCredentials!
+  fileBucket: String!
+  fileId: ID!
+  parentId: ID!
+}
+
+type GProject {
+  projectId: ID!
+  projectname: String!
+  created: String!
+  owner: String!
+}

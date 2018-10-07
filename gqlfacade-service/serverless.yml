@@ -1,0 +1,72 @@
+service: gqlfacade-service
+
+resources:
+  Resources:
+    APIDomainMapping:
+      Type: "AWS::ApiGateway::BasePathMapping"
+      Properties:
+        BasePath: ${self:custom.myStage}-gqlfacade
+        DomainName: "api.hubhighup.com"
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        Stage: ${self:custom.myStage}
+      DependsOn: "###ApiGW###"
+
+provider:
+  name: aws
+  profile: hubhighup
+  runtime: nodejs4.3
+  region: us-west-2
+  stage: dev
+  cfLogs: true
+  memorySize: 1024
+  timeout: 3
+  deploymentBucket: com.hubhighup.serverless.deploys
+  iamRoleStatements:
+    -  Effect: Allow
+       Action:
+         - cognito-identity:*
+         - cognito-idp:*
+         - cognito-sync:*
+         - lambda:InvokeFunction
+         - sts:*
+       Resource: "*"
+
+
+functions:
+  handleUnauth:
+    name: ${self:custom.myStage}-${self:service}-config
+    handler: gqlfacadeservice.config
+    events:
+      - http:
+          path: gqls
+          method: post
+          integration: lambda
+          cors: true
+
+  handle:
+    name: ${self:custom.myStage}-${self:service}-gql
+    handler: gqlfacadeservice.handle
+    events:
+      - http:
+          path: gql
+          method: post
+          integration: lambda
+          cors: true
+          authorizer:
+            poolarn:
+              "Fn::ImportValue": ${self:custom.myStage}-HHU-UserPool
+            name: ${self:custom.myStage}-${self:service}-poolAuth
+            claims:
+              - email
+              - "custom:tenantID"
+              - "custom:federatedID"
+              - "cognito:username"
+
+custom:
+  myStage: ${opt:stage, file(./interservice-config.js):conf.stage,  self:provider.stage}
+  myRegion: ${opt:region, self:provider.region}
+
+plugins:
+  - serverless-webpack
+  - aws-api-gateway-name-resolver

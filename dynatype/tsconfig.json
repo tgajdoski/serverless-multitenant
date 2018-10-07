@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "target": "es6",
+        "module": "commonjs"
+    },
+    "outDir": "./typescriptFolder",
+    "exclude": [
+        "node_modules"
+    ],
+    "files": [
+        "test.ts",
+        "testOrigin.ts"
+    ]
+}

@@ -1,0 +1,35 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Resources": {
+    "DevAccessLogsBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": "com-hubhighup-accesslogs-dev",
+        "AccessControl": "LogDeliveryWrite",
+        "LifecycleConfiguration" : {
+          "Rules": [{
+            "ExpirationInDays": 15,
+            "Status": "Enabled"
+          }]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "DevAccessLogsBucketName": {
+      "Description": "Name of the bucket for the dev logs",
+      "Value": { "Ref": "DevAccessLogsBucket" },
+      "Export": {
+        "Name": "DevAccessLogsBucketName"
+      }
+    },
+    "DevAccessLogsBucketDomain": {
+      "Description": "Domain of the bucket for the dev logs",
+      "Value": { "Fn::GetAtt": [ "DevAccessLogsBucket", "DomainName" ] },
+      "Export": {
+        "Name": "DevAccessLogsBucketDomain"
+      }
+    }
+  }
+}
+

@@ -1,0 +1,37 @@
+{
+    "Table": {
+        "TableName": "User",
+        "KeySchema": [{
+            "AttributeName": "UserId",
+            "KeyType": "HASH"
+        }],
+        "AttributeDefinitions": [{
+            "AttributeName": "UserId",
+            "AttributeType": "S"
+        }, {
+            "AttributeName": "TenantId",
+            "AttributeType": "S"
+        }],
+        "GlobalSecondaryIndexes": [{
+            "IndexName": "TenantId-UserId-index",
+            "KeySchema": [{
+                "AttributeName": "TenantId",
+                "KeyType": "HASH"
+            }, {
+                "AttributeName": "UserId",
+                "KeyType": "RANGE"
+            }],
+            "ProvisionedThroughput": {
+                "ReadCapacityUnits": 1,
+                "WriteCapacityUnits": 1
+            },
+            "Projection" : {
+                "ProjectionType": "ALL"
+            }
+        }],
+        "ProvisionedThroughput": {
+            "ReadCapacityUnits": 1,
+            "WriteCapacityUnits": 1
+        }
+    }
+}

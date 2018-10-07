@@ -1,0 +1,37 @@
+
+      <div class="lead">List of {{authCheckService.tenantName}} Files</div>
+      <div *ngIf="errorMessage" color="red">Error: {{errorMessage}}</div>
+      <table class="table">
+        <thead>
+          <tr>
+            <td class="small" colspan="2"> Filename </td>
+            <td class="small"> Last Modified </td>
+            <td align="right" class="small"> Size </td>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let file of s3files">
+            <td width="30px"><i class="xl demo-icon icon-doc" aria-hidden="true"></i></td>
+            <td><div class="file-link" (click)="openFile(file.fileUrl)">{{file.filename}}</div></td>
+            <td>{{file.lastModified}}</td>
+            <td align="right">{{file.size}}</td>
+          </tr>
+          <tr *ngFor="let file of uploadingFiles">
+            <td><i class="demo-icon icon-doc" aria-hidden="true"></i></td>
+            <td>{{file.file.name}}</td>
+            <td>
+              <div *ngIf="!file.uploaded" class="progress">
+                <div class="progress-bar" role="progressbar" [style.width]="file.percentFinished + '%'">
+                  <span class="sr-only">{{file.percentFinished}}% Complete</span>
+                </div>
+              </div>
+            </td>
+            <td align="right" style="vertical-align:middle;" >{{file.file.size}}</td>
+          </tr>
+        </tbody>
+      </table>
+      <label for="file-upload" class="custom-file-upload btn btn-primary">
+        <i class="demo-icon icon-upload-cloud"></i> Upload
+      </label>
+      <input id="file-upload" (change)="s3Upload($event)" type="file" multiple="true"/>
+  

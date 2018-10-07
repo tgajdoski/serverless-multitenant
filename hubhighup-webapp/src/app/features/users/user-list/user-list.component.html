@@ -1,0 +1,16 @@
+
+      <div class="lead">List of {{authCheckService.tenantName}} Users</div>
+      <table class="table">
+        <thead>
+          <tr>
+            <td class="small"> Username (our pool) </td>
+            <td class="small"> Federated Id </td>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of users; let i = index">
+            <td><i class="demo-icon icon-user" aria-hidden="true"></i>&nbsp;&nbsp; {{user.username}}</td>
+            <td>{{user.userId}}</td>
+          </tr>
+        </tbody>
+      </table>

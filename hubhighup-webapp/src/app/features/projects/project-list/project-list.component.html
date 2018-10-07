@@ -1,0 +1,27 @@
+
+      <div class="lead">List of {{authCheckService.tenantName}} Projects</div>
+      <div *ngIf="errorMessage" color="red">Error: {{errorMessage}}</div>
+      <table class="table">
+        <thead>
+          <tr>
+            <td class="small" colspan="2"> ProjectName </td>
+            <td class="small"> Created </td>
+            <td align="right" class="small"> Owner </td>
+          </tr>
+        </thead>
+     
+        <tbody>
+          <tr *ngFor="let project of projects">
+            <td width="30px"><i class="icon-briefcase" aria-hidden="true"></i></td>
+           <!--<td><a [routerLink]="['project',  { projectId: project.projectId }]" routerLinkActive="active">{{project.projectname}}</a></td>-->
+            <td><a (click)="onSelect(project)" >{{project.projectname}}</a></td>
+            <td>{{project.created}}</td>
+            <td align="right">{{project.owner}}</td>
+          </tr>
+        </tbody>
+      </table>
+      <label for="file-upload" class="custom-file-upload btn btn-primary">
+        <i class="demo-icon icon-upload-cloud"></i> Upload
+      </label>
+      <input id="file-upload" (change)="s3Upload($event)" type="file" multiple="true"/>
+  

@@ -1,0 +1,129 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Resources": {
+    "HubHighUpUIDevBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": "com-hubhighup-ui-dev",
+        "VersioningConfiguration": {
+          "Status": "Enabled"
+        },
+        "LoggingConfiguration": {
+          "DestinationBucketName" : { "Fn::ImportValue" : "DevAccessLogsBucketName" },
+          "LogFilePrefix" : "ui-access-s3"
+        }
+      }
+    },
+    "HubHighUpUIDevBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": { "Ref": "HubHighUpUIDevBucket" },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [ "s3:GetObject" ],
+              "Effect": "Allow",
+              "Resource": { "Fn::Sub": "arn:aws:s3:::${HubHighUpUIDevBucket}/*" },
+              "Principal": {
+                "AWS": "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity E244Z876VROZRW"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "HubHighUpUIDevDistribution": {
+      "Type": "AWS::CloudFront::Distribution",
+      "DependsOn": "HubHighUpUIDevBucket",
+      "Properties": {
+        "DistributionConfig": {
+          "PriceClass": "PriceClass_All",
+          "Aliases" : [ "dev.hubhighup.com" ],
+          "DefaultRootObject": "index.html",
+          "Enabled": true,
+          "HttpVersion": "http2",
+          "Logging": {
+            "Bucket": { "Fn::ImportValue" : "DevAccessLogsBucketDomain" },
+            "Prefix": "ui-access-distr"
+          },
+          "ViewerCertificate": {
+            "AcmCertificateArn": "arn:aws:acm:us-east-1:418554112357:certificate/da025773-51da-4541-b124-ef26bddcfb22",
+            "SslSupportMethod": "sni-only"
+          },
+          "Origins": [
+            {
+              "S3OriginConfig": {
+                "OriginAccessIdentity": "origin-access-identity/cloudfront/E244Z876VROZRW"
+              },
+              "DomainName": { "Fn::GetAtt": [ "HubHighUpUIDevBucket", "DomainName" ] },
+              "OriginPath": "",
+              "Id": "S3Bucket-HubHighUpUIDev"
+            }
+          ],
+          "DefaultCacheBehavior": {
+            "Compress": true,
+            "ForwardedValues": {
+              "QueryString": true
+            },
+            "TargetOriginId": "S3Bucket-HubHighUpUIDev",
+            "ViewerProtocolPolicy": "redirect-to-https"
+          }
+        }
+      }
+    },
+    "ipv4Record": {
+      "Type" : "AWS::Route53::RecordSet",
+      "Properties": {
+        "AliasTarget": {
+          "DNSName": { "Fn::GetAtt": [ "HubHighUpUIDevDistribution", "DomainName" ] },
+          "HostedZoneId": "Z2FDTNDATAQYW2"
+        },
+        "HostedZoneId": "Z2F1JE6D3XKB4U",
+        "Name": "dev.hubhighup.com.",
+        "Type": "A"
+      }
+    },
+    "ipv6Record": {
+      "Type" : "AWS::Route53::RecordSet",
+      "Properties": {
+        "AliasTarget": {
+          "DNSName": { "Fn::GetAtt": [ "HubHighUpUIDevDistribution", "DomainName" ] },
+          "HostedZoneId": "Z2FDTNDATAQYW2"
+        },
+        "HostedZoneId": "Z2F1JE6D3XKB4U",
+        "Name": "dev.hubhighup.com.",
+        "Type": "AAAA"
+      }
+    }
+  },
+  "Outputs": {
+    "HubHighUpUIDevBucketName": {
+      "Description": "Name of the bucket for the dev UI",
+      "Value": { "Ref": "HubHighUpUIDevBucket" },
+      "Export": {
+        "Name": "HubHighUpUIDevBucketName"
+      }
+    },
+    "HubHighUpUIDevBucketDomain": {
+      "Description": "Domain of the bucket for the dev UI",
+      "Value": { "Fn::GetAtt": [ "HubHighUpUIDevBucket", "DomainName" ] },
+      "Export": {
+        "Name": "HubHighUpUIDevBucketBucketDomain"
+      }
+    },
+    "HubHighUpUIDevDistributionDomain": {
+      "Description": "Domain of CloudFront distribution for the dev UI",
+      "Value": { "Fn::GetAtt": [ "HubHighUpUIDevDistribution", "DomainName" ] },
+      "Export": {
+        "Name": "HubHighUpUIDevDistributionDomain"
+      }
+    },
+    "HubHighUpUIDevDistributionId": {
+      "Description": "ID of CloudFront distribution for the dev UI",
+      "Value": { "Ref": "HubHighUpUIDevDistribution" },
+      "Export": {
+        "Name": "HubHighUpUIDevDistributionId"
+      }
+    }
+  }
+}

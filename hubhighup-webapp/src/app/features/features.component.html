@@ -1,0 +1,53 @@
+
+  <div id="st-container" class="st-container st-effect-6" [class.st-menu-open]="menu_open">
+      <!-- content push wrapper -->
+    <div class="st-pusher">
+
+    <nav class="st-menu st-effect-6" id="menu-6">
+        <br /> <br />
+				<div class="container">
+					<div class="lead">
+            <a routerLink="/feat" routerLinkActive="active"><i class="demo-icon icon-pencil"></i> Welcome Page</a>
+          </div>
+          <div class="lead">
+					  <a routerLink="/feat/users" routerLinkActive="active"><i class="demo-icon icon-user-1"></i> Users</a>
+          </div>
+          <div class="lead">
+  					<a routerLink="/feat/projects" routerLinkActive="active"><i class="demo-icon icon-briefcase"></i> Projects</a>
+          </div>
+          <div class="lead">
+  					<a routerLink="/feat/files" routerLinkActive="active"><i class="demo-icon icon-photo"></i> Files</a>
+          </div>
+        </div>
+    </nav>
+
+      <div class="st-content"><!-- this is the wrapper for the content -->
+        <div class="st-content-inner"><!-- extra div for emulating position:fixed of the menu -->
+
+          <ng2-toasty [position]="'top-center'"></ng2-toasty>
+          <div *ngIf="authCheckService.tenantName"  style="z-index: 100; position: fixed; left: 10px; top: 10px;">
+            <i (click)="sidebarShow($event)" class="demo-icon icon-menu" style="font-size:120%; cursor: pointer;" aria-hidden="true"></i>
+          </div>
+          <div class="container">
+            <div class="page-header">
+              <table width="100%">
+                <tr>
+                  <td><img height="50" src="../assets/HHU.png"/></td>
+                  <td>
+                    <div *ngIf="authCheckService.tenantName" class="text-right" aniChange>{{authCheckService.userName}} ({{authCheckService.tenantName}})</div>
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <table width="100%">
+              <router-outlet></router-outlet>
+            </table>
+            <br/>
+            <hr/>
+            <button class="btn btn-sm" (click)="logout()">Logout</button>
+          </div>
+        </div><!-- /st-content-inner -->
+      </div><!-- /st-content -->
+
+    </div><!-- /st-pusher -->
+  </div><!-- /st-container -->

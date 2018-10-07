@@ -1,0 +1,192 @@
+service: file-service
+
+resources:
+  Resources:
+    fileTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: 
+          "Fn::Join" :
+            - "-"
+            - - ${self:custom.myStage}
+              - ${self:service}
+              - "File"
+        AttributeDefinitions:
+          -
+            AttributeName: FileId
+            AttributeType: S
+          -
+            AttributeName: TenantId
+            AttributeType: S
+          -
+            AttributeName: ParentId
+            AttributeType: S
+          -
+            AttributeName: Filename
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: FileId
+            KeyType: HASH
+          -
+            AttributeName: TenantId
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        GlobalSecondaryIndexes:
+          -
+            IndexName: "ParentId-Filename-index"
+            KeySchema:
+              -
+                AttributeName: ParentId
+                KeyType: HASH
+              -
+                AttributeName: Filename
+                KeyType: RANGE
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+            Projection:
+              ProjectionType: ALL
+          -
+            IndexName: "TenantId-index"
+            KeySchema:
+              -
+                AttributeName: TenantId
+                KeyType: HASH
+              -
+                AttributeName: Filename
+                KeyType: RANGE
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+            Projection:
+              ProjectionType: ALL
+    
+    BucketSubscription:
+      Type: "AWS::SNS::Subscription"
+      Properties:
+        Endpoint:
+          "Fn::GetAtt":
+            - FileUploadedHandlerLambdaFunction
+            - Arn
+        Protocol: lambda
+        TopicArn: 
+          "Fn::ImportValue": "HubHighUpFilesDevSNSTopicArn"
+    LambdaInvokeBySNSPermission:
+      Type: "AWS::Lambda::Permission"
+      Properties:
+        FunctionName:
+          "Fn::GetAtt":
+            - FileUploadedHandlerLambdaFunction
+            - Arn
+        Action: "lambda:InvokeFunction"
+        Principal : "sns.amazonaws.com"
+        SourceArn :
+          "Fn::ImportValue": "HubHighUpFilesDevSNSTopicArn"
+    MDBucketSubscription:
+      Type: "AWS::SNS::Subscription"
+      Properties:
+        Endpoint:
+          "Fn::GetAtt":
+            - FileMetadataHandlerLambdaFunction
+            - Arn
+        Protocol: lambda
+        TopicArn: 
+          "Fn::ImportValue": "HubHighUpMDFilesDevSNSTopicArn"
+    LambdaInvokeByMDSNSPermission:
+      Type: "AWS::Lambda::Permission"
+      Properties:
+        FunctionName:
+          "Fn::GetAtt":
+            - FileMetadataHandlerLambdaFunction
+            - Arn
+        Action: "lambda:InvokeFunction"
+        Principal : "sns.amazonaws.com"
+        SourceArn :
+          "Fn::ImportValue": "HubHighUpMDFilesDevSNSTopicArn"
+    baseS3Role:
+      Type: AWS::IAM::Role
+      Properties:
+        Path: /
+        RoleName:
+          "Fn::Join" :
+            - "-"
+            - - ${self:service}
+              - ${self:custom.myStage}
+              - "BaseS3Role"
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                AWS:
+                  "Fn::GetAtt":
+                    - IamRoleLambdaExecution
+                    - Arn
+              Action: sts:AssumeRole
+
+provider:
+  name: aws
+  runtime: nodejs4.3
+  profile: hubhighup
+  region: us-west-2
+  memorySize: 1024
+  timeout: 3
+  deploymentBucket: com.hubhighup.serverless.deploys
+  iamRoleStatements:
+    -  Effect: Allow
+       Action:
+         - s3:*
+         - dynamodb:*
+         - lambda:InvokeFunction
+         - sts:*
+         - es:*
+       Resource: "*"
+
+  environment:
+    fileDynDBTable:
+      Ref : fileTable
+    theFileBucket:
+      "Fn::ImportValue": "HubHighUpFilesDevBucketName"
+    theMDFileBucket:
+      "Fn::ImportValue": "HubHighUpMDFilesDevBucketName"
+    theBaseS3Role:
+      "Fn::GetAtt":
+        - baseS3Role
+        - Arn
+    filesURL: ${file(./interservice-config.js):conf.filesURL}
+    esInstance: 'search-hubhighup-es-2acknamy5rhlvcgnykzomsntde.us-west-2.es.amazonaws.com'
+
+functions:
+  fileUploadedHandler:
+    name: ${self:custom.myStage}-${self:service}-fileUploadedHandler
+    handler: fileservice.fileUploaded
+  fileMetadataHandler:
+    name: ${self:custom.myStage}-${self:service}-fileMetadataHandler
+    handler: fileservice.fileMetadataHandler    
+  schemaOnly:
+    name: ${self:custom.myStage}-${self:service}-schema
+    handler: fileservice.schemaOnly        
+  handle:
+    name: ${self:custom.myStage}-${self:service}-gql
+    handler: fileservice.handle
+
+custom:
+  dynamodb:
+    start:
+      port: 8000
+      inMemory: true
+      migration: true
+    migration:
+      dir: offline_migrations
+  myStage: ${opt:stage, file(./interservice-config.js):conf.stage,  self:provider.stage}
+  myRegion: ${opt:region, self:provider.region}
+
+plugins:
+  - serverless-webpack
+  - serverless-run-function-plugin
+  - serverless-dynamodb-local

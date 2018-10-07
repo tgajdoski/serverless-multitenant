@@ -1,0 +1,12 @@
+{
+  "name": "aws-api-gateway-name-resolver",
+  "version": "1.0.0",
+  "description": "Serverless plugin for resolving API GW generated name",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": {},
+  "license": "ISC",
+  "readme": "ERROR: No README data found!"
+}

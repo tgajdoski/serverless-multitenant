@@ -1,0 +1,21 @@
+  <div class="well well-lg center col-xs-6 col-xs-offset-3 animated fadeIn" >
+
+    <div *ngIf="!verified">
+      <div *ngIf="errorMessage">
+        <p class="lead">Whoops!</p>
+        <p>"{{errorMessage}}"</p>
+        <p>Confirmation email has possibly expired or has been revoked.</p>
+        <p>(If you already confirmed your email, please <a routerLink="/login">click here</a> to login.)</p>
+      </div>
+      <div *ngIf="!errorMessage">
+        <p class="lead">Checking credentials...</p>
+      </div>
+    </div>
+
+    <div *ngIf="verified">
+      <p class="lead">Verified</p>
+      <p>Email verified, please proceed to the login page:</p> <br/><br/><br/>
+      <a routerLink="/login">Login</a>
+    </div>
+
+  </div>

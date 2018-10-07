@@ -1,0 +1,62 @@
+{
+    "Table": {
+        "TableName": "File",
+        "KeySchema": [{
+            "AttributeName": "FileId",
+            "KeyType": "HASH"
+        }, {
+            "AttributeName": "TenantId",
+            "KeyType": "RANGE"
+        }],
+        "AttributeDefinitions": [{
+            "AttributeName": "FileId",
+            "AttributeType": "S"
+        }, {
+            "AttributeName": "TenantId",
+            "AttributeType": "S"
+        }, {
+            "AttributeName": "ParentId",
+            "AttributeType": "S"
+        }, {
+            "AttributeName": "Filename",
+            "AttributeType": "S"
+        }],
+        "GlobalSecondaryIndexes": [{
+            "IndexName": "ParentId-Filename-index",
+            "KeySchema": [{
+                "AttributeName": "ParentId",
+                "KeyType": "HASH"
+            }, {
+                "AttributeName": "Filename",
+                "KeyType": "RANGE"
+            }],
+            "ProvisionedThroughput": {
+                "ReadCapacityUnits": 1,
+                "WriteCapacityUnits": 1
+            },
+            "Projection" : {
+                "ProjectionType": "ALL"
+            }
+        }, {
+            "IndexName": "TenantId-index",
+            "KeySchema": [{
+                "AttributeName": "TenantId",
+                "KeyType": "HASH"
+            }, {
+                "AttributeName": "Filename",
+                "KeyType": "RANGE"
+            }],
+            "ProvisionedThroughput": {
+                "ReadCapacityUnits": 1,
+                "WriteCapacityUnits": 1
+            },
+            "Projection" : {
+                "ProjectionType": "ALL"
+            }
+        }],
+        "ProvisionedThroughput": {
+            "ReadCapacityUnits": 1,
+            "WriteCapacityUnits": 1
+        }
+    }
+}

@@ -1,0 +1,18 @@
+
+'use strict';
+
+import { FileDAO, File } from './File';
+import { S3, DynamoDB, STS, CloudFront } from 'aws-sdk';
+
+
+async function handle(event, context, callback) {
+   try {
+        console.log("PROJECT SERVICE");
+        callback(null, "hello ");
+    } catch (err) {
+        console.log(err);
+        callback(err);
+    } 
+}
+
+module.exports.handle = handle;

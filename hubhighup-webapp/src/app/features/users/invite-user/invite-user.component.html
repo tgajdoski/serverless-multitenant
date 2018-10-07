@@ -1,0 +1,17 @@
+
+  <div class="well well-lg center col-xs-8 col-xs-offset-2 animated fadeIn">
+    <p class="lead">Invite another user</p>
+    <form>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input name="email" class="form-control" type="email" [(ngModel)]="email"/>
+      </div>
+      <div class="form-group">
+        <button #myButt (click)="invite()" type="submit" class="btn btn-primary">Send invitation</button>
+      </div>
+    </form>
+  </div>
+
+  <div *ngIf="sendingInvitation" id="blocker" class="animated" >
+    <div class="cssload-loader"></div>
+  </div>

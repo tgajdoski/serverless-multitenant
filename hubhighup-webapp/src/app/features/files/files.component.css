@@ -1,0 +1,21 @@
+  div.progress {
+    vertical-align: middle;
+    margin-bottom: 0;
+    height: 10px;
+  }
+  table.table td {
+    vertical-align: middle;
+  }
+  input[type="file"] {
+    display: none;
+  }
+  .custom-file-upload {
+      cursor: pointer;
+  }
+  .file-link {
+      cursor: pointer;
+  }
+  .icon-doc {
+      font-size: larger;
+    }
+  

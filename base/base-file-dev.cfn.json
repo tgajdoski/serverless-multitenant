@@ -1,0 +1,400 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Resources for the file-service: a bucket, a cloudfront distribution, route53 A and AAAA records",
+  "Metadata": {
+
+  },
+  "Parameters": {
+    "FilesBucketName": {
+      "Description": "Name for the bucket",
+      "Type": "String",
+      "Default": "com-hubhighup-files-dev"
+    },
+    "MDFilesBucketName": {
+      "Description": "Name for the bucket holding metadata for the files",
+      "Type": "String",
+      "Default": "com-hubhighup-mdfiles-dev"
+    }
+  },
+  "Resources": {
+    "FileAddedSNSTopic": {
+      "Type" : "AWS::SNS::Topic",
+      "Properties" : {
+        "DisplayName" : "FSTopic",
+        "TopicName" : "FilesBucketObjectCreation"
+      }
+    },
+    "FileAddedSNSTopicPolicy": {
+      "Type" : "AWS::SNS::TopicPolicy",
+      "Properties" :
+        {
+          "PolicyDocument" : {
+            "Version": "2008-10-17",
+            "Id": "AllowBucketToPublishToTopic",
+            "Statement": [
+              {
+              "Sid": "example-statement-ID",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS":"*"  
+              },
+              "Action": [
+                "SNS:Publish"
+              ],
+              "Resource": {"Ref" : "FileAddedSNSTopic"},
+              "Condition": {
+                "ForAnyValue:ArnLike": {          
+                  "aws:SourceArn": 
+                    [ { "Fn::Sub": "arn:aws:s3:::${FilesBucketName}" }]
+                }
+              }
+              }
+            ]
+          },
+          "Topics" : [ {"Ref" : "FileAddedSNSTopic"} ]
+        }
+    },
+    "MDFileAddedSNSTopic": {
+      "Type" : "AWS::SNS::Topic",
+      "Properties" : {
+        "DisplayName" : "MDFSTopic",
+        "TopicName" : "MDFilesBucketObjectCreation"
+      }
+    },
+    "MDFileAddedSNSTopicPolicy": {
+      "Type" : "AWS::SNS::TopicPolicy",
+      "Properties" :
+        {
+          "PolicyDocument" : {
+            "Version": "2008-10-17",
+            "Id": "AllowMDBucketToPublishToTopic",
+            "Statement": [
+              {
+              "Sid": "example-statement-ID-2",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS":"*"  
+              },
+              "Action": [
+                "SNS:Publish"
+              ],
+              "Resource": {"Ref" : "MDFileAddedSNSTopic"},
+              "Condition": {
+                "ForAnyValue:ArnLike": {          
+                  "aws:SourceArn": 
+                    [ { "Fn::Sub": "arn:aws:s3:::${MDFilesBucketName}" }]
+                }
+              }
+              }
+            ]
+          },
+          "Topics" : [ {"Ref" : "MDFileAddedSNSTopic"} ]
+        }
+    },
+    "HubHighUpFilesDevBucket": {
+      "Type": "AWS::S3::Bucket",
+      "DependsOn": "FileAddedSNSTopicPolicy",
+      "Properties": {
+        "BucketName": {"Ref": "FilesBucketName"},
+        "VersioningConfiguration": {
+          "Status": "Enabled"
+        },
+        "CorsConfiguration": {
+          "CorsRules": [
+            {
+              "Id": "FullCORS",
+              "MaxAge": "3000",
+              "AllowedHeaders": [ "*" ],
+              "AllowedMethods": [ "GET", "POST", "PUT", "DELETE", "HEAD"],
+              "AllowedOrigins": [ "*" ],
+              "ExposedHeaders": [ "ETag" ]
+            }
+          ]
+        },
+        "NotificationConfiguration": {
+          "TopicConfigurations" : [ 
+            {
+              "Event" : "s3:ObjectCreated:*",
+              "Topic" : {"Ref" : "FileAddedSNSTopic"}
+            }
+          ]
+        },
+        "LoggingConfiguration": {
+          "DestinationBucketName" : { "Fn::ImportValue" : "DevAccessLogsBucketName" },
+          "LogFilePrefix" : "file-access-s3"
+        }
+      }
+    },
+    "HubHighUpFilesDevBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": { "Ref": "HubHighUpFilesDevBucket" },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": "s3:GetObject",
+              "Resource": { "Fn::Sub": "arn:aws:s3:::${HubHighUpFilesDevBucket}/*" },
+              "Principal": {
+                "AWS": "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity E244Z876VROZRW"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "HubHighUpFilesDevDistribution": {
+      "Type": "AWS::CloudFront::Distribution",
+      "DependsOn": "HubHighUpFilesDevBucket",
+      "Properties": {
+        "DistributionConfig": {
+          "PriceClass": "PriceClass_All",
+          "Aliases" : [ "files-dev.hubhighup.com" ],
+          "DefaultRootObject": "index.html",
+          "Enabled": true,
+          "HttpVersion": "http2",
+          "Logging": {
+            "Bucket": { "Fn::ImportValue" : "DevAccessLogsBucketDomain" },
+            "Prefix": "file-access-distr"
+          },
+          "ViewerCertificate": {
+            "AcmCertificateArn": "arn:aws:acm:us-east-1:418554112357:certificate/da025773-51da-4541-b124-ef26bddcfb22",
+            "SslSupportMethod": "sni-only"
+          },
+          "Origins": [
+            {
+              "S3OriginConfig": {
+                "OriginAccessIdentity": "origin-access-identity/cloudfront/E244Z876VROZRW"
+              },
+              "DomainName": { "Fn::GetAtt": [ "HubHighUpFilesDevBucket", "DomainName" ] },
+              "OriginPath": "",
+              "Id": "S3Bucket-HubHighUpFilesDev"
+            }
+          ],
+          "DefaultCacheBehavior": {
+            "Compress": false,
+            "ForwardedValues": {
+              "QueryString": true
+            },
+            "TrustedSigners": [ "418554112357" ],
+            "TargetOriginId": "S3Bucket-HubHighUpFilesDev",
+            "ViewerProtocolPolicy": "redirect-to-https"
+          }
+        }
+      }
+    },
+    "ipv4Record": {
+      "Type" : "AWS::Route53::RecordSet",
+      "Properties": {
+        "AliasTarget": {
+          "DNSName": { "Fn::GetAtt": [ "HubHighUpFilesDevDistribution", "DomainName" ] },
+          "HostedZoneId": "Z2FDTNDATAQYW2"
+        },
+        "HostedZoneId": "Z2F1JE6D3XKB4U",
+        "Name": "files-dev.hubhighup.com.",
+        "Type": "A"
+      }
+    },
+    "ipv6Record": {
+      "Type" : "AWS::Route53::RecordSet",
+      "Properties": {
+        "AliasTarget": {
+          "DNSName": { "Fn::GetAtt": [ "HubHighUpFilesDevDistribution", "DomainName" ] },
+          "HostedZoneId": "Z2FDTNDATAQYW2"
+        },
+        "HostedZoneId": "Z2F1JE6D3XKB4U",
+        "Name": "files-dev.hubhighup.com.",
+        "Type": "AAAA"
+      }
+    },
+    "HubHighUpMDFilesDevBucket": {
+      "Type": "AWS::S3::Bucket",
+      "DependsOn": "MDFileAddedSNSTopicPolicy",
+      "Properties": {
+        "BucketName": {"Ref": "MDFilesBucketName"},
+        "VersioningConfiguration": {
+          "Status": "Enabled"
+        },
+        "CorsConfiguration": {
+          "CorsRules": [
+            {
+              "Id": "FullCORS",
+              "MaxAge": "3000",
+              "AllowedHeaders": [ "*" ],
+              "AllowedMethods": [ "GET", "POST", "PUT", "DELETE", "HEAD"],
+              "AllowedOrigins": [ "*" ],
+              "ExposedHeaders": [ "ETag" ]
+            }
+          ]
+        },
+        "NotificationConfiguration": {
+          "TopicConfigurations" : [ 
+            {
+              "Event" : "s3:ObjectCreated:*",
+              "Topic" : {"Ref" : "MDFileAddedSNSTopic"}
+            }
+          ]
+        },
+        "LoggingConfiguration": {
+          "DestinationBucketName" : { "Fn::ImportValue" : "DevAccessLogsBucketName" },
+          "LogFilePrefix" : "mdfile-access-s3"
+        }
+      }
+    },
+    "HubHighUpMDFilesDevBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": { "Ref": "HubHighUpMDFilesDevBucket" },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": "s3:GetObject",
+              "Resource": { "Fn::Sub": "arn:aws:s3:::${HubHighUpMDFilesDevBucket}/*" },
+              "Principal": {
+                "AWS": "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity E244Z876VROZRW"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "HubHighUpMDFilesDevDistribution": {
+      "Type": "AWS::CloudFront::Distribution",
+      "DependsOn": "HubHighUpMDFilesDevBucket",
+      "Properties": {
+        "DistributionConfig": {
+          "PriceClass": "PriceClass_All",
+          "Aliases" : [ "mdfiles-dev.hubhighup.com" ],
+          "DefaultRootObject": "index.html",
+          "Enabled": true,
+          "HttpVersion": "http2",
+          "Logging": {
+            "Bucket": { "Fn::ImportValue" : "DevAccessLogsBucketDomain" },
+            "Prefix": "mdfile-access-distr"
+          },
+          "ViewerCertificate": {
+            "AcmCertificateArn": "arn:aws:acm:us-east-1:418554112357:certificate/da025773-51da-4541-b124-ef26bddcfb22",
+            "SslSupportMethod": "sni-only"
+          },
+          "Origins": [
+            {
+              "S3OriginConfig": {
+                "OriginAccessIdentity": "origin-access-identity/cloudfront/E244Z876VROZRW"
+              },
+              "DomainName": { "Fn::GetAtt": [ "HubHighUpMDFilesDevBucket", "DomainName" ] },
+              "OriginPath": "",
+              "Id": "S3Bucket-HubHighUpMDFilesDev"
+            }
+          ],
+          "DefaultCacheBehavior": {
+            "Compress": false,
+            "ForwardedValues": {
+              "QueryString": true
+            },
+            "TrustedSigners": [ "418554112357" ],
+            "TargetOriginId": "S3Bucket-HubHighUpMDFilesDev",
+            "ViewerProtocolPolicy": "redirect-to-https"
+          }
+        }
+      }
+    },
+    "mdipv4Record": {
+      "Type" : "AWS::Route53::RecordSet",
+      "Properties": {
+        "AliasTarget": {
+          "DNSName": { "Fn::GetAtt": [ "HubHighUpMDFilesDevDistribution", "DomainName" ] },
+          "HostedZoneId": "Z2FDTNDATAQYW2"
+        },
+        "HostedZoneId": "Z2F1JE6D3XKB4U",
+        "Name": "mdfiles-dev.hubhighup.com.",
+        "Type": "A"
+      }
+    },
+    "mdipv6Record": {
+      "Type" : "AWS::Route53::RecordSet",
+      "Properties": {
+        "AliasTarget": {
+          "DNSName": { "Fn::GetAtt": [ "HubHighUpMDFilesDevDistribution", "DomainName" ] },
+          "HostedZoneId": "Z2FDTNDATAQYW2"
+        },
+        "HostedZoneId": "Z2F1JE6D3XKB4U",
+        "Name": "mdfiles-dev.hubhighup.com.",
+        "Type": "AAAA"
+      }
+    }
+  },
+
+  "Outputs": {
+    "HubHighUpFilesDevSNSTopicArn": {
+      "Description": "Arn of the SNS Topic where bucket notifications are posted",
+      "Value": { "Ref": "FileAddedSNSTopic" },
+      "Export": {
+        "Name": "HubHighUpFilesDevSNSTopicArn"
+      }
+    },
+    "HubHighUpMDFilesDevSNSTopicArn": {
+      "Description": "Arn of the SNS Topic where bucket notifications for metadata files are posted",
+      "Value": { "Ref": "MDFileAddedSNSTopic" },
+      "Export": {
+        "Name": "HubHighUpMDFilesDevSNSTopicArn"
+      }
+    },
+    "HubHighUpFilesDevBucketName": {
+      "Description": "Name of the bucket for the dev filestorage",
+      "Value": { "Ref": "HubHighUpFilesDevBucket" },
+      "Export": {
+        "Name": "HubHighUpFilesDevBucketName"
+      }
+    },
+    "HubHighUpFilesDevBucketDomain": {
+      "Description": "Domain of the bucket for the dev filestorage",
+      "Value": { "Fn::GetAtt": [ "HubHighUpFilesDevBucket", "DomainName" ] },
+      "Export": {
+        "Name": "HubHighUpFilesDevBucketBucketDomain"
+      }
+    },
+    "HubHighUpFilesDevDistributionDomain": {
+      "Description": "Domain of CloudFront distribution for the dev filestorage",
+      "Value": { "Fn::GetAtt": [ "HubHighUpFilesDevDistribution", "DomainName" ] },
+      "Export": {
+        "Name": "HubHighUpFilesDevDistributionDomain"
+      }
+    },
+    "HubHighUpFilesDevDistributionId": {
+      "Description": "ID of CloudFront distribution for the dev filestorage",
+      "Value": { "Ref": "HubHighUpFilesDevDistribution" },
+      "Export": {
+        "Name": "HubHighUpFilesDevDistributionId"
+      }
+    },
+    "HubHighUpMDFilesDevBucketName": {
+      "Description": "Name of the bucket for the dev metadata filestorage",
+      "Value": { "Ref": "HubHighUpMDFilesDevBucket" },
+      "Export": {
+        "Name": "HubHighUpMDFilesDevBucketName"
+      }
+    },
+    "HubHighUpMDFilesDevBucketDomain": {
+      "Description": "Domain of the bucket for the dev metadata filestorage",
+      "Value": { "Fn::GetAtt": [ "HubHighUpMDFilesDevBucket", "DomainName" ] },
+      "Export": {
+        "Name": "HubHighUpMDFilesDevBucketBucketDomain"
+      }
+    },
+    "HubHighUpMDFilesDevDistributionDomain": {
+      "Description": "Domain of CloudFront distribution for the dev metadata filestorage",
+      "Value": { "Fn::GetAtt": [ "HubHighUpMDFilesDevDistribution", "DomainName" ] },
+      "Export": {
+        "Name": "HubHighUpMDFilesDevDistributionDomain"
+      }
+    },
+    "HubHighUpMDFilesDevDistributionId": {
+      "Description": "ID of CloudFront distribution for the dev metadata filestorage",
+      "Value": { "Ref": "HubHighUpMDFilesDevDistribution" },
+      "Export": {
+        "Name": "HubHighUpMDFilesDevDistributionId"
+      }
+    }
+  }
+}

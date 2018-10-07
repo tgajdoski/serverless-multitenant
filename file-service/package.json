@@ -1,0 +1,52 @@
+{
+  "name": "hhu-fileservice",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "license": "LicenseRef-LICENSE",
+  "scripts": {
+    "schema2ts": "ts-node ./schemas/toTs.ts",
+    "test": "mocha",
+    "test-local": "NODE_ENV=test mocha testL --watch"
+  },
+  "dependencies": {
+    "elasticsearch": "^12.1.3",
+    "graphql": "^0.9.1",
+    "http-aws-es": "^1.1.3",
+    "uuid": "^3.0.1"
+  },
+  "devDependencies": {
+    "@playlyfe/gql": "^2.2.1",
+    "@types/elasticsearch": "^5.0.12",
+    "@types/graphql": "^0.8.6",
+    "@types/node": "^7.0.5",
+    "aws-sdk": "^2.22.0",
+    "aws-sdk-mock": "^1.6.1",
+    "awscred": "^1.2.0",
+    "babel-core": "^6.23.1",
+    "babel-loader": "^6.3.1",
+    "babel-preset-es2017": "^6.22.0",
+    "chai": "^3.5.0",
+    "copy-webpack-plugin": "^4.0.1",
+    "eslint": "^3.15.0",
+    "gcg-tweaked": "^0.5.7",
+    "graphql-tag": "^1.2.4",
+    "json-loader": "^0.5.4",
+    "mocha": "^3.2.0",
+    "mocha-bamboo-reporter": "^1.1.1",
+    "mocha-osx-reporter": "^0.1.2",
+    "serverless": "tgjorgoski/serverless#cognito-authorizer-fixed",
+    "serverless-dynamodb-client": "0.0.2",
+    "serverless-dynamodb-local": "^0.2.18",
+    "serverless-offline": "^3.8.3",
+    "serverless-run-function-plugin": "^0.0.6",
+    "serverless-webpack": "tgjorgoski/serverless-webpack",
+    "should": "^11.2.0",
+    "sinon": "^1.17.7",
+    "ts-loader": "^2.0.0",
+    "ts-node": "^2.1.0",
+    "tslint": "^4.4.2",
+    "typescript": "^2.1.6",
+    "webpack": "^2.2.1"
+  }
+}

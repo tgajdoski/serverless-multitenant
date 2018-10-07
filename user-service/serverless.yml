@@ -1,0 +1,245 @@
+service: user-service
+
+resources:
+  Resources:
+    tenantTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: 
+          "Fn::Join" :
+            - "-"
+            - - ${self:custom.myStage}
+              - ${self:service}
+              - "Tenant"
+        AttributeDefinitions:
+          -
+            AttributeName: TenantId
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: TenantId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+    userTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName:
+          "Fn::Join" : 
+            - "-"
+            - - ${self:custom.myStage}
+              - ${self:service}
+              - "User"
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        AttributeDefinitions:
+          -
+            AttributeName: UserId
+            AttributeType: S
+          -
+            AttributeName: TenantId
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: UserId
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          -
+            IndexName: "TenantId-UserId-index"
+            KeySchema:
+              -
+                AttributeName: TenantId
+                KeyType: HASH
+              -
+                AttributeName: UserId
+                KeyType: RANGE
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+            Projection:
+              ProjectionType: ALL
+    cognitoFormStack:
+      Type: AWS::CloudFormation::Stack
+      Properties:
+        TemplateURL: 'https://s3-${self:custom.myRegion}.amazonaws.com/###path###/user-pool-client.cform'
+        TimeoutInMinutes: '60'
+        Parameters:
+          StackPrefix: ${self:custom.myStage}
+          PostConfirmationLambdaName:
+            "Fn::Join":
+              - '-'
+              - - ${self:custom.myStage}
+                - ${self:service} 
+                - 'userConfirmed'
+          CustomMessageLambdaName: 
+            "Fn::Join":
+              - '-'
+              - - ${self:custom.myStage}
+                - ${self:service}                
+                - 'customMessages'
+          PreSignUpLambdaName: 
+            "Fn::Join":
+              - '-'
+              - - ${self:custom.myStage}
+                - ${self:service}
+                - 'preSignUp'
+    APIDomainMapping:
+      Type: "AWS::ApiGateway::BasePathMapping"
+      Properties:
+        BasePath: ${self:custom.myStage}-user
+        DomainName: "api.hubhighup.com"
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        Stage: ${self:custom.myStage}
+      DependsOn: "###ApiGW###"         
+    IamRoleLambdaExecution:
+      DependsOn:
+        - cognitoFormStack
+        - tenantTable
+        - userTable
+
+    CustomMessagesInvokeByCognitoPermission:
+      Type: "AWS::Lambda::Permission"
+      Properties:
+        FunctionName:
+          "Fn::GetAtt":
+            - CustomMessagesLambdaFunction
+            - Arn
+        Action: "lambda:InvokeFunction"
+        Principal : "cognito-idp.amazonaws.com"
+        SourceArn :
+          "Fn::GetAtt" : [ cognitoFormStack , Outputs.MyUserPoolArn ]
+    PreSignUpInvokeByCognitoPermission:
+      Type: "AWS::Lambda::Permission"
+      Properties:
+        FunctionName:
+          "Fn::GetAtt":
+            - PreSignUpLambdaFunction
+            - Arn
+        Action: "lambda:InvokeFunction"
+        Principal : "cognito-idp.amazonaws.com"
+        SourceArn :
+          "Fn::GetAtt" : [ cognitoFormStack , Outputs.MyUserPoolArn ]
+    UserConfirmedInvokeByCognitoPermission:
+      Type: "AWS::Lambda::Permission"
+      Properties:
+        FunctionName:
+          "Fn::GetAtt":
+            - UserConfirmedLambdaFunction
+            - Arn
+        Action: "lambda:InvokeFunction"
+        Principal : "cognito-idp.amazonaws.com"
+        SourceArn :
+          "Fn::GetAtt" : [ cognitoFormStack , Outputs.MyUserPoolArn ]
+
+  Outputs:
+    CognitoUserPoolId:
+      Value:
+        "Fn::GetAtt" : [ cognitoFormStack , Outputs.MyUserPoolId ]
+
+provider:
+  name: aws
+  profile: hubhighup
+  runtime: nodejs4.3
+  region: us-west-2
+  stage: dev
+  cfLogs: true
+  memorySize: 1024
+  timeout: 3
+  deploymentBucket: com.hubhighup.serverless.deploys
+  iamRoleStatements:
+    -  Effect: Allow
+       Action:
+         - dynamodb:*
+         - cognito-identity:*
+         - cognito-idp:*
+         - cognito-sync:*
+       Resource: "*"
+
+  environment:
+    cognitoUserPoolId: 
+      "Fn::GetAtt" : [ cognitoFormStack , Outputs.MyUserPoolId ]
+    cognitoPoolClientId:
+      "Fn::GetAtt" : [ cognitoFormStack , Outputs.MyUserPoolClientId ]
+    cognitoIdentityPoolId:
+      "Fn::GetAtt" : [ cognitoFormStack , Outputs.MyIdentityPoolId ]
+    tenantDynDBTable:
+      Ref : tenantTable
+    userDynDBTable:
+      Ref : userTable
+    uiBaseURL: ${file(interservice-config.js):conf.uiBaseURL}
+
+functions:
+  customMessages:
+    name: ${self:custom.myStage}-${self:service}-customMessages
+    handler: userservice.customMessage
+  preSignUp:
+    name: ${self:custom.myStage}-${self:service}-preSignUp
+    handler: userservice.preSignUp
+  userConfirmed:
+    name: ${self:custom.myStage}-${self:service}-userConfirmed
+    handler: userservice.newUserConfirmed
+  config:
+    name: ${self:custom.myStage}-${self:service}-config
+    handler: userservice.config
+    events:
+      - http:
+          path: gqls
+          method: post
+          integration: lambda
+          cors: true
+  handle:
+    name: ${self:custom.myStage}-${self:service}-gql
+    handler: userservice.handle
+    events:
+      - http:
+          path: gql
+          method: post
+          integration: lambda
+          cors:
+            origins:
+              - '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+          authorizer:
+            poolarn:
+              "Fn::GetAtt" : [ cognitoFormStack , Outputs.MyUserPoolArn ]
+            name: ${self:custom.myStage}-${self:service}-poolAuth
+            claims:
+              - email
+              - "custom:tenantID"
+              - "custom:federatedID"
+              - "cognito:username"
+
+
+package:
+  exclude:
+    - node_modules/**
+    - '!node_modules/uuid/**'
+    - offline_migrations/**
+    - testL/**
+    - test/**
+    - .serverless_plugins/**
+
+custom:
+  dynamodb:
+    start:
+      port: 8000
+      inMemory: true
+      migration: true
+    migration:
+      dir: offline_migrations
+  myStage: ${opt:stage, file(./interservice-config.js):conf.stage,  self:provider.stage}
+  myRegion: ${opt:region, self:provider.region}
+
+plugins:
+  - serverless-webpack
+  - serverless-dynamodb-local
+  - aws-nested-stacks-plugin
+  - aws-api-gateway-name-resolver

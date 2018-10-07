@@ -1,0 +1,40 @@
+# Represents a file or a folder in the file structure.
+type GFile {
+    fileId: ID!
+    filename: String!
+    signedUrl: String
+    # The ID of the 'file' which is a parent of this file
+    parentId: ID!
+    # The size (in bytes) of the file. If the file is marked uploaded, but has size 0 then it is probably serves as a folder
+    size: Int
+    lastModified: String
+    # Specifies if this file has children or not (usually this means that this is a folder)
+    isContainer: Boolean
+    # If true, the file is in S3, if not the file is not yet uploaded, or it is still loading
+    uploaded: Boolean
+    owner: ID
+}
+
+type Query {
+    # Get the files in the parent specified by parentId. If not specified, get files in the root folder
+    files(parentId: String): [GFile]!
+    # Get the file with the specified ID
+    file(fileId: ID!): GFile
+}
+
+type IAMCredentials {
+    accessKey: String
+    secretAccessKey: String
+    sessionToken: String
+}
+
+type UploadAuthorization {
+    credentials: IAMCredentials!
+    fileBucket: String!
+    fileId: ID!
+    parentId: ID!
+}
+
+type Mutation {
+    getUploadAuthorization(filename: String!, parentId: String) : UploadAuthorization
+}

@@ -1,0 +1,19 @@
+# Represents a file or a folder in the file structure.
+type GProject {
+    projectId: ID!
+    projectname: String!
+    created: String!
+    owner: String!
+}
+
+type Query {
+    # Get the projects
+    projects: [GProject]!
+    # Get the project with the project ID
+    project(projectId: ID!): GProject
+}
+
+
+type Mutation {
+    createProject(projectname: String!) : GProject
+}

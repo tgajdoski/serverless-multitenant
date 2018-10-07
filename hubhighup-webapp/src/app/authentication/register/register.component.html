@@ -1,0 +1,33 @@
+  <div class="well well-lg center col-sm-6 col-xs-12 col-sm-offset-3 col-xs-offset-0 animated fadeIn">
+    <p class="lead">Create a New Account for Your Company/Organization</p>
+
+    <div class="alert alert-danger" role="alert" *ngIf="errorMessage">
+      <p>{{errorMessage}}</p>
+    </div>
+    <form>
+      <div class="form-group">
+        <label for="tenantname">Company Name</label>
+        <input name="tenantname" class="form-control" type="text" placeholder="e.g. Acme Rocket-Powered Products, Inc."
+          aria-describedby="helpBlock" required [(ngModel)]="registration.tenantName"/>
+        <span id="helpBlock" class="help-block small">The account can host multiple users. After signing up,
+          you can invite more people into the account.</span>
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input name="email" class="form-control" type="email" required [(ngModel)]="registration.email"/>
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input name="password" class="form-control" type="password" required [(ngModel)]="registration.password"/>
+      </div>
+      <div class="form-group">
+        <button #myButt (click)="registerUser()" type="submit" class="btn btn-primary">Sign up</button>
+      </div>
+    </form>
+    <br/>
+    <p>Already a user? Click here to <a routerLink="/auth/login">login</a>.</p>
+  </div>
+
+  <div *ngIf="registeringUser" id="blocker" class="animated" >
+    <div class="cssload-loader"></div>
+  </div>

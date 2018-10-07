@@ -1,0 +1,89 @@
+service: project-service
+
+provider:
+  name: aws
+  runtime: nodejs4.3
+  profile: hubhighup
+  region: us-west-2
+  memorySize: 1024
+  timeout: 3
+  deploymentBucket: com.hubhighup.serverless.deploys
+  environment:
+    projectDynDBTable:
+      Ref : projectTable
+  iamRoleStatements:
+    -  Effect: Allow
+       Action:
+         - dynamodb:*
+       Resource: "*"
+       
+functions:
+  handle:
+    name: ${self:custom.myStage}-${self:service}-gql
+    handler: projectservice.handle
+
+
+resources:
+  Resources:
+    projectTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: 
+          "Fn::Join" :
+            - "-"
+            - - ${self:custom.myStage}
+              - ${self:service}
+              - "Project"
+        AttributeDefinitions:
+          -
+            AttributeName: projectId
+            AttributeType: S
+          -
+            AttributeName: TenantId
+            AttributeType: S
+          -
+            AttributeName: projectname
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: projectId
+            KeyType: HASH
+          -
+            AttributeName: TenantId
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        GlobalSecondaryIndexes:
+          -
+            IndexName: "ParentId-Projectname-index"
+            KeySchema:
+              -
+                AttributeName: TenantId
+                KeyType: HASH
+              -
+                AttributeName: projectname
+                KeyType: RANGE
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+            Projection:
+              ProjectionType: ALL
+
+
+
+
+
+
+
+
+
+    
+  
+custom:
+  myStage: ${opt:stage, file(./interservice-config.js):conf.stage,  self:provider.stage}
+  myRegion: ${opt:region, self:provider.region}
+
+
+plugins:
+  - serverless-webpack

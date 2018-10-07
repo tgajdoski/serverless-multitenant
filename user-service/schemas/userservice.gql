@@ -1,0 +1,33 @@
+type GUser {
+    userId: ID!
+    username: String!
+}
+
+type GTenant {
+    name: String!
+}
+
+type Configuration {
+    userPoolId: String!
+    userPoolClientAppId: String!
+    identityPoolId: String!
+}
+
+type Query {
+    # Get the users
+    users: [GUser]!
+    # Get the app configuration
+    config: Configuration
+}
+
+type InitializationResult {
+    initialized: Boolean!
+    newTenant: Boolean!
+    tenantName: String!
+}
+
+type Mutation {
+    # Invite the user. Returns auto-generated username based on that email
+    inviteUser(email: String!) : String!
+    initializeMe: InitializationResult!
+}

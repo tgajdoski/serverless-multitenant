@@ -1,0 +1,391 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Hub High Up Cognito Resources CloudFormation Template",
+    "Metadata": {
+
+    },
+    "Parameters": {
+      "StackPrefix": {
+        "Description": "Prefix for the resources created as part of this stack",
+        "Type": "String",
+        "Default": "Prefix"
+      },
+      "CognitoUserPoolLambdaName": {
+          "Description": "CF-User-Pool lambda name",
+          "Type": "String",
+          "Default": "aws-cloudformation-cognito-userpool-1-0-0"
+      },
+      "CognitoUserPoolClientLambdaName": {
+          "Description": "CF-User-Pool-Client lambda name",
+          "Type": "String",
+          "Default": "aws-cloudformation-cognito-userpool-client-1-0-0"
+      },
+      "CognitoUserPoolCustomAttributeLambdaName": {
+          "Description": "CF-User-Pool-Custom-Attribute lambda name",
+          "Type": "String",
+          "Default": "aws-cloudformation-cognito-userpool-attribute-1-0-0"
+      },
+      "CognitoIdentityPoolLambdaName": {
+          "Description": "CF-Identity-Pool lambda name",
+          "Type": "String",
+          "Default": "aws-cloudformation-cognito-identitypool-1-0-0"
+      },
+      "CognitoIdentityPoolRolesLambdaName": {
+          "Description": "CF-Identity-Pool-Roles lambda name",
+          "Type": "String",
+          "Default": "aws-cloudformation-cognito-identitypool-roles-1-0-0"
+      },
+      
+      "PostConfirmationLambdaName": {
+          "Description": "Post Confirmation lambda name",
+          "Type": "String",
+          "Default": "user-service-dev-userConfirmed"
+      },
+      "CustomMessageLambdaName": {
+          "Description": "Custom Message lambda name",
+          "Type": "String",
+          "Default": "user-service-dev-customMessages"
+      },
+      "PreSignUpLambdaName": {
+          "Description": "Pre Signup lambda name",
+          "Type": "String",
+          "Default": "user-service-dev-preSignUp"
+      }
+    },
+    "Mappings": {
+
+    },
+    "Conditions": {
+
+    },
+    "Resources": {
+
+      "MyUserPool": {
+         "Type": "Custom::CognitoUserPool",
+         "Version": "1.0",
+         "Properties": {
+            "ServiceToken": {"Fn::Join" : [":",[ "arn:aws:lambda", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, "function", { "Ref": "CognitoUserPoolLambdaName" } ] ]},
+            "PoolName": {"Fn::Join" : [" ", [{ "Ref": "StackPrefix" }, "HHU User Pool"]]},
+            "Policies": {
+              "PasswordPolicy": {
+                "MinimumLength": "8",
+                "RequireUppercase": "true",
+                "RequireLowercase": "true",
+                "RequireNumbers": "true",
+                "RequireSymbols": "false"
+              }
+            },
+            "LambdaConfig": {
+              "PostConfirmation": {"Fn::Join" : [":",[ "arn:aws:lambda", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, "function", { "Ref": "PostConfirmationLambdaName" } ] ]}, 
+              "CustomMessage": {"Fn::Join" : [":",[ "arn:aws:lambda", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, "function", { "Ref": "CustomMessageLambdaName" } ] ]}, 
+              "PreSignUp": {"Fn::Join" : [":",[ "arn:aws:lambda", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, "function", { "Ref": "PreSignUpLambdaName" } ] ]}
+            },
+            "AutoVerifiedAttributes": [
+              "email"
+            ],
+            "AliasAttributes": [
+              "email"
+            ],
+            "SmsVerificationMessage": "Your verification code is {####}.",
+            "EmailVerificationMessage": "Your verification code is {####}.",
+            "EmailVerificationSubject": "Your verification code",
+            "SmsAuthenticationMessage": "Your authentication code is {####}.",
+            "MfaConfiguration": "OFF",
+            "DeviceConfiguration": {
+              "ChallengeRequiredOnNewDevice": "false",
+              "DeviceOnlyRememberedOnUserPrompt": "false"
+            }
+         }
+      },
+
+      "MyUserPoolSuggestedTenantNameAttribute": {
+        "DependsOn": "MyUserPool",        
+        "Type": "Custom::CognitoUserPoolCustomAttribute",
+        "Version": "1.0",
+        "Properties": {
+          "ServiceToken": {"Fn::Join" : [":",[ "arn:aws:lambda", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, "function", { "Ref": "CognitoUserPoolCustomAttributeLambdaName" } ] ]},
+          "UserPoolId": { "Ref": "MyUserPool" },
+          "AttributeDataType": "String",
+          "DeveloperOnlyAttribute": "false",
+          "Mutable": "true",
+          "Name": "suggestedTenantName",
+          "StringAttributeConstraints": {
+            "MaxLength": "128",
+            "MinLength": "1"
+          },
+          "Required": "false"
+        }
+      },
+
+      "MyUserPoolTenantNameAttribute": {
+        "DependsOn": "MyUserPoolSuggestedTenantNameAttribute", 
+        "Type": "Custom::CognitoUserPoolCustomAttribute",
+        "Version": "1.0",
+        "Properties": {
+          "ServiceToken": {"Fn::Join" : [":",[ "arn:aws:lambda", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, "function", { "Ref": "CognitoUserPoolCustomAttributeLambdaName" } ] ]},
+          "UserPoolId": { "Ref": "MyUserPool" },
+          "AttributeDataType": "String",
+          "DeveloperOnlyAttribute": "false",
+          "Mutable": "true",
+          "Name": "tenantName",
+          "StringAttributeConstraints": {
+            "MaxLength": "128",
+            "MinLength": "1"
+          },
+          "Required": "false"
+        }
+      },
+
+      "MyUserPoolInvitedTenantIdAttribute": {
+        "DependsOn": "MyUserPoolTenantNameAttribute",
+        "Type": "Custom::CognitoUserPoolCustomAttribute",
+        "Version": "1.0",
+        "Properties": {
+          "ServiceToken": {"Fn::Join" : [":",[ "arn:aws:lambda", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, "function", { "Ref": "CognitoUserPoolCustomAttributeLambdaName" } ] ]},
+          "UserPoolId": { "Ref": "MyUserPool" },
+          "AttributeDataType": "String",
+          "DeveloperOnlyAttribute": "false",
+          "Mutable": "true",
+          "Name": "invitedTenantID",
+          "StringAttributeConstraints": {
+            "MaxLength": "128",
+            "MinLength": "1"
+          },
+          "Required": "false"
+        }
+      },
+
+      "MyUserPoolTenantIdAttribute": {
+        "DependsOn": "MyUserPoolInvitedTenantIdAttribute",
+        "Type": "Custom::CognitoUserPoolCustomAttribute",
+        "Version": "1.0",
+        "Properties": {
+          "ServiceToken": {"Fn::Join" : [":",[ "arn:aws:lambda", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, "function", { "Ref": "CognitoUserPoolCustomAttributeLambdaName" } ] ]},
+          "UserPoolId": { "Ref": "MyUserPool" },
+          "AttributeDataType": "String",
+          "DeveloperOnlyAttribute": "false",
+          "Mutable": "true",
+          "Name": "tenantID",
+          "StringAttributeConstraints": {
+            "MaxLength": "128",
+            "MinLength": "1"
+          },
+          "Required": "false"
+        }
+      },
+
+      "MyUserPoolFederatedIdAttribute": {
+        "DependsOn": "MyUserPoolTenantIdAttribute",
+        "Type": "Custom::CognitoUserPoolCustomAttribute",
+        "Version": "1.0",
+        "Properties": {
+          "ServiceToken": {"Fn::Join" : [":",[ "arn:aws:lambda", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, "function", { "Ref": "CognitoUserPoolCustomAttributeLambdaName" } ] ]},
+          "UserPoolId": { "Ref": "MyUserPool" },
+          "AttributeDataType": "String",
+          "DeveloperOnlyAttribute": "false",
+          "Mutable": "true",
+          "Name": "federatedID",
+          "StringAttributeConstraints": {
+            "MaxLength": "128",
+            "MinLength": "1"
+          },
+          "Required": "false"
+        }
+      },
+
+      "MyUserPoolClient": {
+        "Type": "Custom::CognitoUserPoolClient",
+        "Version": "1.0",
+        "DependsOn": "MyUserPoolFederatedIdAttribute",
+        "Properties": {
+          "ServiceToken": {"Fn::Join" : [":",[ "arn:aws:lambda", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, "function", { "Ref": "CognitoUserPoolClientLambdaName" } ] ]},
+          "UserPoolId": { "Ref": "MyUserPool" },
+          "ClientName": {"Fn::Join" : [" ", [{ "Ref": "StackPrefix" }, "HHU UserPool Client"]]},
+          "GenerateSecret": "false",
+          "RefreshTokenValidity": 30,
+          "ExplicitAuthFlows": [],
+          "WriteAttributes": [
+            "address", 
+            "birthdate",
+            "custom:suggestedTenantName", 
+            "email", 
+            "family_name", 
+            "gender", 
+            "given_name", 
+            "locale", 
+            "middle_name", 
+            "name", 
+            "nickname", 
+            "phone_number", 
+            "picture", 
+            "preferred_username", 
+            "profile", 
+            "updated_at", 
+            "website", 
+            "zoneinfo"
+          ], 
+          "ReadAttributes": [
+            "address", 
+            "birthdate", 
+            "email",
+            "custom:tenantID",
+            "custom:federatedID",
+            "email_verified", 
+            "family_name", 
+            "gender", 
+            "given_name", 
+            "locale", 
+            "middle_name", 
+            "name", 
+            "nickname", 
+            "phone_number", 
+            "phone_number_verified", 
+            "picture", 
+            "preferred_username", 
+            "profile", 
+            "updated_at", 
+            "website", 
+            "zoneinfo"
+          ]
+        }
+      },
+
+      "MyIdentityPool": {
+         "Type": "Custom::CognitoIdentityPool",
+         "Version": "1.0",
+         "Properties": {
+            "ServiceToken": {"Fn::Join" : [":",[ "arn:aws:lambda", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, "function", { "Ref": "CognitoIdentityPoolLambdaName" } ] ]},
+            "IdentityPoolName": {"Fn::Join" : [" ", [{ "Ref": "StackPrefix" }, "HHU Identity Pool"]]},
+            "AllowUnauthenticatedIdentities": "false",
+            "CognitoIdentityProviders": [
+              {
+                "ClientId": { "Ref" : "MyUserPoolClient" },
+                "ProviderName": { "Fn::Join" : [ "", [ "cognito-idp.", { "Ref": "AWS::Region" }, ".amazonaws.com/" , { "Ref": "MyUserPool" } ] ] }
+              }
+            ]
+         }
+      },
+
+      "IdPoolAuthRole": {
+        "Type": "AWS::IAM::Role",
+        "Properties": {
+          "RoleName": {
+            "Fn::Join": ["", [ { "Ref": "AWS::Region" }, { "Ref": "StackPrefix" }, "IdentityPoolAuth"]]
+          },
+          "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Action": "sts:AssumeRoleWithWebIdentity",
+                "Effect": "Allow",
+                "Principal": {
+                  "Federated": "cognito-identity.amazonaws.com"
+                }
+              }
+            ]
+          }
+        }
+      },
+
+      "AuthPolicy": {
+        "Type": "AWS::IAM::Policy",
+        "Properties": {
+          "PolicyName": {
+            "Fn::Join": ["", [ { "Ref": "AWS::Region" }, { "Ref": "StackPrefix" }, "IdentityPoolAuthPolicy"]]
+          },
+          "Roles": [ { "Ref": "IdPoolAuthRole" } ],
+          "PolicyDocument" : {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "mobileanalytics:PutEvents",
+                        "cognito-sync:*",
+                        "cognito-identity:*",
+                        "execute-api:*",
+                        "lambda:InvokeFunction"
+                    ],
+                    "Resource": [ "*" ]
+                }
+            ]
+          }
+        }
+      },
+
+      "IdPoolUnauthRole": {
+        "Type": "AWS::IAM::Role",
+        "Properties": {
+          "RoleName": {
+            "Fn::Join": ["", [ { "Ref": "AWS::Region" }, { "Ref": "StackPrefix" }, "IdentityPoolUnauth"]]
+          },
+          "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Action": "sts:AssumeRoleWithWebIdentity",
+                "Effect": "Allow",
+                "Principal": {
+                  "Federated": "cognito-identity.amazonaws.com"
+                }
+              }
+            ]
+          }
+        }
+      },
+
+      "UnauthPolicy": {
+        "Type": "AWS::IAM::Policy",
+        "Properties": {
+          "PolicyName": {
+            "Fn::Join": ["", [ { "Ref": "AWS::Region" }, { "Ref": "StackPrefix" }, "IdentityPoolUnauthPolicy"]]
+          },
+          "Roles": [ { "Ref": "IdPoolUnauthRole" } ],
+          "PolicyDocument" : {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "mobileanalytics:PutEvents",
+                        "cognito-sync:*"
+                    ],
+                    "Resource": [ "*" ]
+                }
+            ]
+          }
+        }
+      },
+
+      "MyIdentityPoolRoles": {
+         "Type": "Custom::CognitoIdentityPoolRoles",
+         "Version": "1.0",
+         "Properties": {
+            "ServiceToken": {"Fn::Join" : [":",[ "arn:aws:lambda", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, "function", { "Ref": "CognitoIdentityPoolRolesLambdaName" } ] ]},
+            "IdentityPoolId": { "Ref": "MyIdentityPool" },
+            "Roles": {
+              "authenticated": { "Fn::GetAtt" : [ "IdPoolAuthRole", "Arn" ]},
+              "unauthenticated": { "Fn::GetAtt" : [ "IdPoolUnauthRole", "Arn" ]}
+            }
+         }
+      }
+
+    },
+    "Outputs": {
+      "MyUserPoolId": {
+        "Value": { "Ref": "MyUserPool" }
+      },
+      "MyUserPoolArn": {
+        "Value": { "Fn::GetAtt" : [ "MyUserPool", "Arn" ]},
+        "Export": {
+          "Name": {"Fn::Join" : ["-", [{ "Ref": "StackPrefix" }, "HHU-UserPool"] ]}
+        }
+      },
+      "MyUserPoolClientId": {
+        "Value": { "Ref" : "MyUserPoolClient" }
+      },
+      "MyIdentityPoolId": {
+        "Value": { "Ref" : "MyIdentityPool" }
+      }
+    }
+}

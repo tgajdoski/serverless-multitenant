@@ -1,0 +1,12 @@
+  div.progress {
+    vertical-align: middle;
+    margin-bottom: 0;
+    height: 10px;
+  }
+  table.table td {
+    vertical-align: middle;
+  }
+  .icon-briefcase {
+      font-size: larger;
+    }
+  

@@ -1,0 +1,35 @@
+{
+  "name": "gqlfacade-service",
+  "version": "0.0.1",
+  "description": "gql facade for multiple microservices",
+  "main": "handler.js",
+  "scripts": {
+    "schema2ts": "ts-node ./schemas/toTs.ts",
+    "merge-schemas": "node merge-schemas.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "license": "LicenseRef-LICENSE",
+  "devDependencies": {
+    "@playlyfe/gql": "^2.2.1",
+    "@types/graphql": "^0.8.6",
+    "@types/node": "^7.0.5",
+    "aws-sdk": "^2.24.0",
+    "babel-core": "^6.23.1",
+    "babel-eslint": "^7.1.1",
+    "babel-loader": "^6.4.0",
+    "babel-preset-es2017": "^6.22.0",
+    "copy-webpack-plugin": "^4.0.1",
+    "eslint-plugin-graphql": "^0.6.1",
+    "fs-extra": "^2.0.0",
+    "gcg-tweaked": "^0.5.6",
+    "gql-merge": "0.0.4",
+    "json-loader": "^0.5.4",
+    "serverless": "tgjorgoski/serverless#cognito-authorizer-fixed",
+    "serverless-webpack": "tgjorgoski/serverless-webpack",
+    "ts-loader": "^2.0.1",
+    "ts-node": "^2.1.0",
+    "tslint": "^4.5.1",
+    "typescript": "^2.2.1",
+    "webpack": "^2.2.1"
+  }
+}
